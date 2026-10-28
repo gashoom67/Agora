@@ -1,0 +1,10 @@
+{
+  "name": "Bazaar without a public default registry",
+  "environment": "marketplace",
+  "num_agents": 16,
+  "steps": 50,
+  "seed": 3,
+  "archetype_mix": {"trickster": 4, "honest_merchant": 4, "hoarder": 2, "speculator": 2, "enforcer": 2, "diplomat": 2},
+  "llm": {"backend": "ollama", "model": "llama3.1:8b"},
+  "mechanism": {"public_default_registry": false, "escrow_fee": 0.04}
+}

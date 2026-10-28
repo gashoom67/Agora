@@ -1,0 +1,9 @@
+{
+  "name": "Winner's curse across auction formats",
+  "environment": "auction_house",
+  "num_agents": 12,
+  "steps": 45,
+  "seed": 5,
+  "llm": {"backend": "ollama", "model": "llama3.1:8b", "model_pool": ["llama3.1:8b", "qwen2.5:7b"]},
+  "auction": {"format": "rotate", "signal_noise": 0.3, "reserve_fraction": 0.4, "shill_detection_prob": 0.3}
+}

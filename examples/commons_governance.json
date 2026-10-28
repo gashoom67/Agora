@@ -1,0 +1,11 @@
+{
+  "name": "Can twenty fishers govern themselves?",
+  "environment": "commons",
+  "num_agents": 20,
+  "steps": 60,
+  "seed": 11,
+  "summary_every": 5,
+  "archetype_mix": {"honest_merchant": 2, "hoarder": 2, "speculator": 3, "gambler": 1, "trickster": 3, "diplomat": 2, "steward": 4, "enforcer": 3},
+  "llm": {"backend": "ollama", "model": "llama3.1:8b", "max_concurrency": 4},
+  "commons": {"monitoring_prob": 0.2, "fine_multiplier": 3, "growth_rate": 0.35, "capacity": 1000}
+}

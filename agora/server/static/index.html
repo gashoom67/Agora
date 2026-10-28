@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agora — mechanism design lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><span class="mark" aria-hidden="true"></span><span>Agora</span></div>
+  <div class="runinfo" id="runinfo">No experiment running</div>
+  <div class="progress" aria-label="progress"><div id="progressFill"></div></div>
+  <div class="status" id="status" role="status">idle</div>
+  <div class="controls">
+    <button id="btnPause" class="ghost" hidden>Pause</button>
+    <button id="btnResume" class="ghost" hidden>Resume</button>
+    <button id="btnStop" class="ghost danger" hidden>Stop</button>
+    <a id="btnReport" class="button" target="_blank" hidden>Open report</a>
+    <a id="btnBundle" class="button ghost" hidden>Download data</a>
+    <button id="btnNew" class="ghost" hidden>New experiment</button>
+  </div>
+</header>
+
+<!-- ============================== SETUP ============================== -->
+<main id="setup" class="setup">
+  <section class="setup-intro">
+    <h1>Design an economy, then watch it run itself.</h1>
+    <p>Choose the rules of exchange and who lives there. Once you start, up to twenty autonomous agents trade, negotiate, cooperate and cheat with no further input — every thought, deal and betrayal is recorded for analysis.</p>
+  </section>
+
+  <form id="setupForm" class="setup-grid" autocomplete="off" novalidate>
+    <fieldset class="panel span2">
+      <legend>World</legend>
+      <div id="envChoices" class="env-choices" role="radiogroup" aria-label="Environment"></div>
+    </fieldset>
+
+    <fieldset class="panel">
+      <legend>Experiment</legend>
+      <label class="field">Name<input name="name" value="untitled experiment" maxlength="80"></label>
+      <label class="field">Agents <output id="agentsOut">12</output><input type="range" name="num_agents" min="2" max="20" value="12"></label>
+      <label class="field">Steps<input type="number" name="steps" min="1" max="2000" value="40"></label>
+      <label class="field">Random seed<input type="number" name="seed" value="7"></label>
+      <label class="field">Chronicle every<input type="number" name="summary_every" min="1" max="100" value="5"><small>steps</small></label>
+      <label class="field">Pause between steps<input type="number" name="step_delay_s" min="0" max="30" step="any" value="0"><small>seconds</small></label>
+    </fieldset>
+
+    <fieldset class="panel">
+      <legend>Minds</legend>
+      <div class="seg" role="radiogroup" aria-label="Backend">
+        <label><input type="radio" name="backend" value="ollama" checked><span>Ollama LLMs</span></label>
+        <label><input type="radio" name="backend" value="heuristic"><span>Heuristic baseline</span></label>
+      </div>
+      <div id="ollamaFields">
+        <label class="field">Ollama URL<input name="base_url" value="http://localhost:11434"></label>
+        <div class="field">Model
+          <div class="row"><select name="model" id="modelSelect"><option>llama3.1:8b</option></select><button type="button" id="btnCheck" class="ghost small">Check connection</button></div>
+        </div>
+        <p id="ollamaMsg" class="hint">Checks which models your Ollama server has installed.</p>
+        <label class="field">Mix models <small>(optional, comma-separated, assigned round-robin)</small><input name="model_pool" placeholder="llama3.1:8b, qwen2.5:7b, mistral:7b"></label>
+        <label class="field">Parallel generations<input type="number" name="max_concurrency" min="1" max="20" value="4"><small>match OLLAMA_NUM_PARALLEL</small></label>
+        <label class="check"><input type="checkbox" name="auto_pull"> Pull missing models automatically</label>
+      </div>
+      <p class="hint" id="heuristicHint" hidden>Rule-based agents driven by the same personality traits. No LLM needed — useful as a control group.</p>
+    </fieldset>
+
+    <fieldset class="panel">
+      <legend>Population</legend>
+      <p class="hint">Relative weight of each archetype. Traits are sampled around each archetype, so no two agents are alike.</p>
+      <div id="mix" class="mix"></div>
+    </fieldset>
+
+    <fieldset class="panel span2">
+      <legend>Rules of the world</legend>
+      <div class="rules">
+        <div>
+          <h3>Institutions (all worlds)</h3>
+          <label class="field">Escrow fee<input type="number" name="mechanism.escrow_fee" step="any" min="0" max="0.5" value="0.02"></label>
+          <label class="field">Longest trust delay<input type="number" name="mechanism.max_trust_delay" min="1" max="50" value="5"><small>steps</small></label>
+          <label class="field">Actions per turn<input type="number" name="mechanism.max_actions_per_turn" min="1" max="10" value="4"></label>
+          <label class="check"><input type="checkbox" name="mechanism.public_default_registry" checked> Public registry of broken contracts</label>
+          <label class="check"><input type="checkbox" name="mechanism.allow_private_messages" checked> Private messages</label>
+          <label class="check"><input type="checkbox" name="mechanism.allow_syndicates" checked> Syndicates</label>
+        </div>
+        <div data-env="marketplace">
+          <h3>Marketplace</h3>
+          <label class="field">Trade fee<input type="number" name="marketplace.trade_fee" step="any" min="0" max="0.3" value="0.01"></label>
+          <label class="field">Production per step<input type="number" name="marketplace.production_per_step" min="0" max="50" value="3"></label>
+          <label class="field">Order lifetime<input type="number" name="marketplace.order_ttl" min="1" max="100" value="5"><small>steps</small></label>
+          <label class="field">Hunger penalty<input type="number" name="marketplace.hunger_penalty" step="any" min="0" value="4"></label>
+          <label class="check"><input type="checkbox" name="marketplace.subsistence" checked> Agents must eat</label>
+        </div>
+        <div data-env="auction_house">
+          <h3>Auction house</h3>
+          <label class="field">Format<select name="auction.format"><option value="rotate">Rotate all three</option><option value="first_price">First-price sealed</option><option value="vickrey">Vickrey (second-price)</option><option value="english">English ascending</option></select></label>
+          <label class="field">Appraisal noise σ<input type="number" name="auction.signal_noise" step="any" min="0" max="2" value="0.25"></label>
+          <label class="field">Reserve (× prior mean)<input type="number" name="auction.reserve_fraction" step="any" min="0" max="2" value="0.4"></label>
+          <label class="field">Shill detection<input type="number" name="auction.shill_detection_prob" step="any" min="0" max="1" value="0.5"></label>
+          <label class="field">Stipend per step<input type="number" name="auction.stipend" step="any" min="0" value="12"></label>
+          <label class="check"><input type="checkbox" name="auction.public_appraisal"> Publish true values after each sale</label>
+        </div>
+        <div data-env="commons">
+          <h3>Commons</h3>
+          <label class="field">Growth rate r<input type="number" name="commons.growth_rate" step="any" min="0.01" max="2" value="0.35"></label>
+          <label class="field">Capacity K<input type="number" name="commons.capacity" step="any" min="10" value="1000"></label>
+          <label class="field">Monitoring probability<input type="number" name="commons.monitoring_prob" step="any" min="0" max="1" value="0.3"></label>
+          <label class="field">Fine multiplier<input type="number" name="commons.fine_multiplier" step="any" min="0" value="3"></label>
+          <label class="field">Price slope b<input type="number" name="commons.price_slope" step="any" min="0" value="0.02"></label>
+          <label class="field">Upkeep per step<input type="number" name="commons.upkeep" step="any" min="0" value="8"></label>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="start span2">
+      <p id="formError" class="error" role="alert" hidden></p>
+      <button type="submit" id="btnStart" class="primary">Start simulation</button>
+    </div>
+  </form>
+
+  <section class="panel past">
+    <h2>Past runs</h2>
+    <div id="pastRuns" class="past-list"><p class="hint">Runs you complete appear here with their reports.</p></div>
+  </section>
+  <footer class="credits">Agora is created by Ghashem Sari Ghashem Almansoori.</footer>
+</main>
+
+<!-- ============================== LIVE ============================== -->
+<main id="live" class="live" hidden>
+  <aside class="roster" aria-label="Agents">
+    <div class="roster-head"><h2>Agents</h2><span id="giniBadge" class="badge" title="Wealth Gini coefficient">Gini —</span></div>
+    <ol id="roster"></ol>
+  </aside>
+
+  <section class="center">
+    <div id="world" class="world"></div>
+    <div class="constellation">
+      <canvas id="net" aria-label="Social network of agents"></canvas>
+      <div id="netLegend" class="net-legend"></div>
+      <div id="netTip" class="tip" hidden></div>
+    </div>
+    <div class="charts">
+      <figure><figcaption>Wealth inequality</figcaption><div class="cbox"><canvas id="chIneq"></canvas></div></figure>
+      <figure><figcaption>Value exchanged per step</figcaption><div class="cbox"><canvas id="chVol"></canvas></div></figure>
+      <figure><figcaption id="chEnvTitle">World</figcaption><div class="cbox"><canvas id="chEnv"></canvas></div></figure>
+    </div>
+  </section>
+
+  <section class="feedcol">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="feed">Live feed</button>
+      <button role="tab" aria-selected="false" data-tab="highlights">Highlights <span id="hlCount" class="count">0</span></button>
+      <button role="tab" aria-selected="false" data-tab="chronicle">Chronicle</button>
+    </div>
+    <div class="filters" id="filters" aria-label="Feed filters"></div>
+    <ol id="feed" class="feed" data-panel="feed" aria-live="off"></ol>
+    <ol id="highlights" class="feed" data-panel="highlights" hidden></ol>
+    <div id="chronicle" class="chronicle" data-panel="chronicle" hidden></div>
+    <div class="telemetry" id="telemetry"></div>
+  </section>
+</main>
+
+<dialog id="agentDlg" class="agent-dlg">
+  <form method="dialog"><button class="close ghost small" aria-label="Close">Close</button></form>
+  <div id="agentBody"></div>
+</dialog>
+
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
